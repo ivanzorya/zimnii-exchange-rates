@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Главная{% endblock %}
+
+{% block content %}
+<div class="container">
+
+    <h1>Запрос изменения курса валют</h1>
+
+        {% if message %}
+            <span type="button" class="btn btn-warning">{{ message }}</span>
+        {% endif %}
+
+        <form method="post">
+            <label for="currency">Валюта</label>
+            <select name= "currency" class="form-control" id="currency">
+                {% for option in data %}
+                  <option value="{{ option.name }}"><h1>{{ option.name }}</h1></option>
+                {% endfor %}
+            </select><br>
+            <label for="date_1">Дата начала</label>
+            <input type="date" name="date_1" id="date_1" class="form-control"><br>
+            <label for="date_2">Дата окончания</label>
+            <input type="date" name="date_2" id="date_2" class="form-control"><br>
+            <input type="submit" class="btn btn-success" value="Запросить">
+        </form>
+
+</div>
+{% endblock %}

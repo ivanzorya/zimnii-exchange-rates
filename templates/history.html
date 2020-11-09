@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}История{% endblock %}
+
+{% block content %}
+
+    <div class="container">
+         <h1>История запросов</h1>
+
+            <table id="dtBasicExample" class="table table-striped table-bordered table-sm" cellspacing="0" width="100%">
+              <thead>
+                <tr>
+                  <th class="th-sm">Дата запроса
+                  </th>
+                  <th class="th-sm">Валюта
+                  </th>
+                  <th class="th-sm">Изменения
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for element in data %}
+                <tr>
+                  <td>{{ element.date }}</td>
+                  <td>{{ element.currency }}</td>
+                  <td> <a class="p-2 text-dark" href="/course-changes/{{element.id}}">подробнее</a></td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+
+
+    </div>
+
+{% endblock %}
