@@ -15,11 +15,9 @@ db = SQLAlchemy(app)
 
 NAMES = [
         {'name': 'Фунт стерлингов Соединенного королевства'},
-        {'name': 'Белорусский рубль'},
         {'name': 'Доллар США'},
         {'name': 'Евро'},
         {'name': 'Индийская рупия'},
-        {'name': 'Казахстанский тенге'},
         {'name': 'Канадский доллар'},
         {'name': 'Китайский юань'},
         {'name': 'Украинская гривна'},
@@ -29,11 +27,9 @@ NAMES = [
 
 NAME_TO_CODE = {
     'Фунт стерлингов Соединенного королевства': 'R01035',
-    'Белорусский рубль': 'R01090',
     'Доллар США': 'R01235',
     'Евро': 'R01239',
     'Индийская рупия': 'R01270',
-    'Казахстанский тенге': 'R01335',
     'Канадский доллар': 'R01350',
     'Китайский юань': 'R01375',
     'Украинская гривна': 'R01720',
@@ -43,11 +39,9 @@ NAME_TO_CODE = {
 
 CODE_TO_NAME = {
     'R01035': 'Фунт стерлингов Соединенного королевства',
-    'R01090': 'Белорусский рубль',
     'R01235': 'Доллар США',
     'R01239': 'Евро',
     'R01270': 'Индийская рупия',
-    'R01335': 'Казахстанский тенге',
     'R01350': 'Канадский доллар',
     'R01375': 'Китайский юань',
     'R01720': 'Украинская гривна',
@@ -83,32 +77,18 @@ class CourseChanges(db.Model):
         return '<CourseChanges %r' % self.id
 
 
-@app.route('/')
-def index():
-    return render_template('index.html')
-
-
-def get_message(message):
-    return render_template(
-        'get-course-changes.html',
-        data=NAMES, message=message
-    )
-
-
 def validate_data(date_1, date_2):
+    date_req1, date_req2, message = None, None, None
     if not date_1 or not date_2:
-        return get_message('Заполните даты')
-    date_req1 = datetime.strptime(date_1, '%Y-%m-%d')
-    date_req2 = datetime.strptime(date_2, '%Y-%m-%d')
-    if date_req2 < date_req1:
-        return get_message(
-            'Дата окончания не может быть раньше чем дата начала'
-        )
-    if date_req2 > datetime.today():
-        return get_message(
-            'Дата окончания не может быть позже сегодняшней даты'
-        )
-    return date_req1, date_req2
+        message = 'Заполните даты'
+    else:
+        date_req1 = datetime.strptime(date_1, '%Y-%m-%d')
+        date_req2 = datetime.strptime(date_2, '%Y-%m-%d')
+        if date_req2 < date_req1:
+            message = 'Дата окончания не может быть раньше чем дата начала'
+        if date_req2 > datetime.today():
+            message = 'Дата окончания не может быть позже сегодняшней даты'
+    return date_req1, date_req2, message
 
 
 def get_request(date_req1, date_req2, currency_code):
@@ -117,7 +97,11 @@ def get_request(date_req1, date_req2, currency_code):
             f'http://www.cbr.ru/scripts/XML_dynamic.asp?date_req1={date_req1}'
             f'&date_req2={date_req2}&VAL_NM_RQ={currency_code}')
     except Exception as e:
-        return get_message(f'Сервер Центробанка не доступен. Ошибка {e}')
+        return render_template(
+            'get-course-changes.html',
+            data=NAMES,
+            message=f'Сервер Центробанка не доступен. Ошибка {e}'
+        )
     data = xmltodict.parse(changes_xml.text)
     data = json.loads(json.dumps(data)).get('ValCurs').get('Record')
     return data
@@ -129,7 +113,11 @@ def create_changes_request(currency):
         db.session.add(changes_request)
         db.session.commit()
     except Exception as e:
-        return get_message(f'При создании отчета произошла ошибка - {e}')
+        return render_template(
+            'get-course-changes.html',
+            data=NAMES,
+            message=f'При создании отчета произошла ошибка - {e}'
+        )
     return changes_request
 
 
@@ -153,24 +141,39 @@ def create_course_changes(data, changes_request_id):
         db.session.add_all(changes_list)
         db.session.commit()
     except Exception as e:
-        return get_message(f'При создании отчета произошла ошибка - {e}')
+        return render_template(
+            'get-course-changes.html',
+            data=NAMES,
+            message=f'При создании отчета произошла ошибка - {e}'
+        )
     return redirect(f'/course-changes/{changes_request_id}')
+
+
+@app.route('/')
+def index():
+    return render_template('index.html')
 
 
 @app.route('/get-course-changes', methods=['POST', 'GET'])
 def get_course_changes():
     if request.method == 'POST':
         currency = request.form.get('currency')
-        date_req1, date_req2 = validate_data(
+        date_req1, date_req2, message = validate_data(
             request.form.get('date_1'),
             request.form.get('date_2')
         )
-        date_req1 = datetime.strftime(date_req1, '%d/%m/%Y')
-        date_req2 = datetime.strftime(date_req2, '%d/%m/%Y')
-        currency_code = NAME_TO_CODE.get(currency)
-        data = get_request(date_req1, date_req2, currency_code)
-        changes_request = create_changes_request(currency)
-        return create_course_changes(data, changes_request.id)
+        if message is not None:
+            return render_template(
+                'get-course-changes.html',
+                data=NAMES, message=message
+            )
+        else:
+            date_req1 = datetime.strftime(date_req1, '%d/%m/%Y')
+            date_req2 = datetime.strftime(date_req2, '%d/%m/%Y')
+            currency_code = NAME_TO_CODE.get(currency)
+            data = get_request(date_req1, date_req2, currency_code)
+            changes_request = create_changes_request(currency)
+            return create_course_changes(data, changes_request.id)
     return render_template('get-course-changes.html', data=NAMES)
 
 
