@@ -1,3 +1,3 @@
-## Курс валюты
- 
-Простое приложение на Flask, которое позволяет получать данные по курсу валют (использует API центробанка), за указанный интервал времени. Front & back.
+## Currency Exchange Rates
+
+A simple Flask application that allows you to get currency exchange rate data (uses the Central Bank API) for a specified time interval. Frontend & backend.
